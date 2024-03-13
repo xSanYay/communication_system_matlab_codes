@@ -1,0 +1,593 @@
+Expt 1
+
+Expt 2
+
+Expt 3
+
+a)
+
+tfinal=0.02;
+t=0:0.000001:tfinal;
+xanalog=cos(2*pi*500*t)+cos(2*pi*800*t);
+subplot(4,1,1);
+plot(t,xanalog,'r-');
+xlabel('Time')
+ylabel('Amplitude')
+title('Analog signal')
+
+%critical sampling  fs=2fm(fm=800)
+fs=1600;
+tsamp=0:1/fs:tfinal;
+xsampled=cos(2*pi*500*tsamp)+cos(2*pi*800*tsamp);
+subplot(4,1,2);
+plot(tsamp,xsampled,'b*-');
+
+%stairs(tsamp,xsampled,'b*-');
+xlabel('Time')
+ylabel('Amplitude')
+title('CriticalSampling (fs=2fm)')
+
+
+
+fs=1599;
+tsamp=0:1/fs:tfinal;
+xsampled=cos(2*pi*500*tsamp)+cos(2*pi*800*tsamp);
+subplot(4,1,3);
+plot(tsamp,xsampled,'b*-');
+
+%stairs(tsamp,xsampled,'b*-');
+xlabel('Time');ylabel('Amplitude');title('Under Sampling (fs<2fm)');
+
+
+
+%over Sampling(fs>2fm)
+fs=4000;
+tsamp=0:1/fs:tfinal;
+xsampled=cos(2*pi*500*tsamp)+cos(2*pi*800*tsamp);
+subplot(4,1,4);
+plot(tsamp,xsampled,'b*-');
+xlabel('Time');ylabel('Amplitude');title('Over Sampling (fs>2fm)');
+
+
+b)
+
+
+tfinal=0.01;
+t=0:0.00001:tfinal;
+xanalog=cos(2*pi*400*t)+cos(2*pi*700*t);
+%critical sampling  fs=2fm(fm=700)
+fs=1400;
+%Note that samples will repeat after 13/fs,
+% hence its %sufficient if we consider first 14 samples(0 to 13) of analog %signal (observe the figures given previously)
+
+tsamp=0:1/fs:13/fs;
+xsampled=cos(2*pi*400*tsamp)+cos(2*pi*700*tsamp);
+%calculate 14 point DFT of sampled signal. abs(...) is
+%required because plot function displays only real values
+
+xsampled_DFT=abs(fft(xsampled));
+xsampled_length=0:length(xsampled_DFT)-1;
+
+subplot(6,1,1);
+stem(100*xsampled_length,xsampled_DFT);
+xlabel('Frequency');ylabel('Magnitude');title('Signal');
+
+xreconstructed=ifft(fft(xsampled)); %To reconstruct the signal, ifft(...) can be  used.
+subplot(6,1,2);
+plot(tsamp,xreconstructed,'b*-');
+xlabel('Time');ylabel('Amplitude');title('Critical Sampling (fs=2fm)');
+
+ %Under Sampling(fs<2fm)
+fs=700;%Note that samples will repeat after 6/fs,hence its sufficientif we consider first 7 samples(0 to 6) of analog signal
+tsamp=0:1/fs:6/fs;
+xsampled=cos(2*pi*400*tsamp)+cos(2*pi*700*tsamp);
+xsampled_DFT=abs(fft(xsampled)); %calculate 7 point DFT of sampled signal.
+xsampled_length=0:length(xsampled_DFT)-1;
+subplot(6,1,3);
+stem(100*xsampled_length,xsampled_DFT)
+xlabel('Frequency');ylabel('Magnitude');title('Under Sampling (fs<2fm)');
+
+xreconstructed=ifft(fft(xsampled)); %To reconstruct the signal, ifft(...) can be  used.
+subplot(6,1,4);plot(tsamp,xreconstructed,'b*-');
+xlabel('Time');ylabel('Amplitude');title('Under Sampling (fs<2fm)');
+
+
+
+%over Sampling(fs>2fm)
+fs=2000;%Note that samples will repeat after 19/fs,hence its %sufficient if we consider first 20 %samples(0 to 19) of analog %signal
+tsamp=0:1/fs:19/fs;
+xsampled=cos(2*pi*400*tsamp)+cos(2*pi*700*tsamp);%calculate 20 point DFT of sampled %signal.
+xsampled_DFT=abs(fft(xsampled));
+xsampled_length=0:length(xsampled_DFT)-1;
+
+
+subplot(6,1,5);stem(100*xsampled_length,xsampled_DFT)
+xlabel('Frequency');
+ylabel('Magnitude');
+title('Over Sampling (fs>2fm)');
+
+xreconstructed=ifft(fft(xsampled));
+subplot(6,1,6);
+plot(tsamp,xreconstructed,'b*-');
+xlabel('Time');
+ylabel('Amplitude');
+title('Over Sampling (fs>2fm)');
+
+
+Expt 4
+
+
+Expt 5
+
+
+uniform quantization
+
+clc;
+close all;
+clear all;
+
+t=[0:0.01:10];
+a=sin(t);
+[sqnr8,aquan8,code8]=u_pcm(a,8);
+[sqnr16,aquan16,code16]=u_pcm(a,16);
+disp('sqnr8');
+disp('sqnr16');
+plot(t,a,'-',t,aquan8,'-',t,aquan16,'-',t,zeros(1,length(t)));
+xlabel('time')
+ylabel('amplitude')
+legend('original signal','8 level quantized signal','16 level quantized signal')
+
+
+function[sqnr,a_quan,code]=u_pcm(a,n)
+amax=max(abs(a));
+a_quan=a/amax;
+d=2/n;
+q=d*[0:n-1];
+q=q-((n-1)/2)*d;
+for i=1:n
+    a_quan((q(i)-d/2<=a_quan)&(a_quan<=q(i)+d/2))=q(i).*ones(1,length(find((q(i)-d/2<=a_quan)&(a_quan<=q(i)+d/2))));
+   
+    b_quan(a_quan==q(i))=(i-1).*ones(1,length(find(a_quan==q(i))));
+   
+end
+a_quan=a_quan*amax;
+nu=ceil(log2(n));
+code=zeros(length(a),nu);
+for i=length(a)
+    for j=nu:--1:0
+        if(fix(b_quan(i)/(2^j)==1))
+            code(i,(nu-j))=1;
+            b_quan(i)=b_quan(i)-2^j;
+        end
+    end
+end   
+sqnr=20*log10(norm(a)/norm(a-a_quan));
+end
+
+
+
+Non-uniform qunatization
+
+
+clear all;
+clc;
+t=[0:0.01:10];
+a=sin(t);
+[sqnr,aquan,code]=mula_pcm(a,16,255);
+display(sqnr);
+plot(t,a,'-',t,aquan,'-');
+
+
+function[sqnr,a_quan,code]=u_pcm(a,n)
+amax=max(abs(a));
+a_quan=a/amax;
+d=2/n;
+q=d.*[0:n-1];
+q=q-((n-1)/2)*d;
+for i=1:n
+ a_quan(find((q(i)-d/2<=a_quan)&(a_quan<=q(i)+d/2)))=q(i).*ones(1,length(find((q(i)-d/2<=a_quan)&(a_quan<=q(i)+d/2))));
+ 
+end
+a_quan=a_quan*amax;
+nu=ceil(log2(n));
+code=zeros(length(a),nu);
+
+sqnr=20*log10(norm(a)/norm(a-a_quan));
+end
+
+function[sqnr,a_quan,code]=mula_pcm(a,n,mu)
+[y,maximum]=mulaw(a,mu);
+[sqnr,y_q,code]=u_pcm(y,n);
+a_quan=invmulaw(y_q,mu);
+q_quan=maximum*a_quan;
+sqnr=20*log10(norm(a)/norm(a-a_quan));
+end
+
+function[y,a]=mulaw(x,mu)
+a=max(abs(x));
+y=(log(1+mu*abs(x/a))./log(1+mu)).*sign(x);
+end
+
+function x=invmulaw(y,mu)
+x=(((1+mu).^(abs(y))-1)./mu).*sign(y);
+end
+
+Expt 6
+
+Expt 7
+
+
+clc
+clear all
+close all
+t = -5:0.01:5; %basic time axis
+f =2;
+w = 2*pi*f;
+osr = 250; %can vary
+fs1 = w/pi;
+fs = fs1*osr;
+%% sampling time
+ts = -5:(1/fs):5; %sampling times are defined
+y = @(t)sin(w.*t); %signal is defined
+%% sigma delta quantisation
+[u,q] = SDQ(y(ts),ts);
+%% reconstruction algorithm
+z = 0;
+for k = 1:length(ts)
+z = z + q(k).*sinc(w.*(t - ts(k)));
+end
+c = max(y(t))./max(z); %scaling is done as a consequence of oversampling
+z = z.*c;
+%% figures
+figure(1)
+subplot(3,1,1)
+plot(t,y(t),&#39;linewidth&#39;,2)
+title(&#39;Original sinal&#39;)
+
+xlabel(&#39;Time&#39;)
+ylabel(&#39;Amplitude&#39;)
+subplot(3,1,2)
+plot(ts,q)
+title(&#39;SDQ signal&#39;);
+xlabel(&#39;Time&#39;);
+ylabel(&#39;Amplitude&#39;);
+subplot(3,1,3)
+plot(t,z,&#39;linewidth&#39;,2);
+title(&#39;Reconstructed signal&#39;);
+xlabel(&#39;Time&#39;);
+ylabel(&#39;Amplitude&#39;);
+figure(2);
+plot(t,y(t),&#39;linewidth&#39;,2)
+hold on
+plot(t,z,&#39;linewidth&#39;,2);
+title(&#39;Original vs Reconstructed&#39;);
+figure(3);
+plot(abs(z - y(t)),&#39;linewidth&#39;,2);
+title(&#39;Error&#39;);
+figure(4);
+subplot(3,1,1);
+plot(abs(fftshift(fft(y(t)))));
+xlabel(&#39;Frequency&#39;);
+ylabel(&#39;Amplitude&#39;);
+title(&#39;Spectrum of original signal&#39;);
+subplot(3,1,2);
+plot(abs(fftshift(fft(q))));
+xlabel(&#39;Frequency&#39;);
+ylabel(&#39;Amplitude&#39;);
+title(&#39;Spectrum of SDQ&#39;);
+subplot(3,1,3);
+plot(abs(fftshift(fft(z))));
+title(&#39;Spectrum of recovered signal&#39;);
+xlabel(&#39;Frequency&#39;);
+ylabel(&#39;Amplitude&#39;);
+%% mse computation
+error = immse(z,y(t));
+%% function
+function [u,q] = SDQ(y,t)
+%as per basic equations, models a sigma delta modulator
+%% code logic
+q = zeros(1,length(t));
+u = zeros(1,length(t)); %quantizaton noise/state variable
+u(1) = 0.9; %taken 0.9 as in between 0 and 1 for stability (non inclusive)
+%recursive equations for SDQ
+for k = 2:length(t)
+q(k) = sign(u(k-1) + y(k));
+u(k) = u(k-1) + y(k) - q(k);
+end
+end
+
+
+
+Expt 8
+
+Unipolar RZ
+
+clc
+m = [0 0 1 1 0 1 0];
+n = length(m);
+x = [];
+y = [];
+
+for i=1:n
+    x=[x i-1 i-1+0.5 i-1+0.5 i];
+    if(m(i)==0)
+        y=[y 0 0 0 0];
+    else
+        y=[y 1 1 0 0];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Unipolar RZ');
+
+
+
+
+Unipolar NRZ
+
+clc
+m = [0 0 1 1 0 1 0];
+n = length(m);
+x = [];
+y = [];
+
+for i=1:n
+    x=[x i-1 i];
+    if(m(i)==0)
+        y=[y 0 0];
+    else
+        y=[y 1 1];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Unipolar NRZ');
+
+
+
+
+Polar NRZ
+
+m = [0 0 1 1 0 1 0];
+n = length(m);
+x = [];
+y = [];
+a=1;
+for i=1:n
+    x=[x i-1 i];
+    if(m(i)==1)
+        y=[y a a];
+    else
+        y=[y -a -a];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Polar NRZ I');
+
+
+
+
+Polar RZ
+
+clc
+m = [0 0 1 1 0  1 0];
+n = length(m);
+x = [];
+y = [];
+
+for i=1:n
+    x=[x i-1 i-1+0.5 i-1+0.5 i];
+    if(m(i)==0)
+        y=[y -1 -1 0 0];
+    else
+        y=[y 1 1 0 0];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Polar RZ');
+
+
+
+
+Manchester
+
+clc
+m = [1 0 1 1 0 0 1 0 1 1 0];
+n = length(m);
+x = [];
+y = [];
+
+for i=1:n
+    x=[x i-1 i-1+0.5 i-1+0.5 i];
+    if(m(i)==0)
+        y=[y 1 1 -1 -1];
+    else
+        y=[y -1 -1 1 1];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Manchester');
+
+
+
+
+Bipolar NRZ
+
+clc
+m = [1 0 1 1 0 0 1 0 1 1 0];
+n = length(m);
+x = [];
+y = [];
+a=1;
+for i=1:n
+    x=[x i-1 i];
+    if(m(i)== 1)
+        y=[y a a];
+        a=a*(-1);
+    else
+        y=[y 0 0];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Bipolar NRZ');
+
+
+
+
+
+
+Bipolar RZ
+
+m = [0 0 1 1 0 1 0];
+n = length(m);
+x = [];
+y = [];
+a=1;
+for i=1:n
+    x=[x i-1 i-1+0.5 i-1+0.5 i];
+    if(m(i)==1)
+        y=[y a a 0 0];
+        a=a*(-1);
+    else
+        y=[y 0 0 0 0];
+    end
+end
+
+plot(x,y),axis([0,n,-2,2]);
+title('Bipolar RZ');
+
+
+
+
+PSD code
+
+v = 1;   % Voltage level of a bit
+R = 1;   % Bitrate
+T = 1/R; % Bit period
+f = 0:0.001*R:2*R; % Frequency vector in terms of bit rate
+f = f + 1e-10; % Avoid division by zero in the sinusoid
+f_zero = 1e-9;   % Small offset for the frequency component at f=0
+
+% PSD curves are plotted for Bitrate=1 bps and Pulse amplitude=1 V
+
+% Unipolar NRZ
+s_unipolar_nrz = (v^2 * T/4) * (sin(pi * f * T) ./ (pi * f * T)).^2;
+s_unipolar_nrz(1) = s_unipolar_nrz(1) + (v^2 / 4) + f_zero; % Add impulse at f=0
+
+figure;
+stem(f_zero, s_unipolar_nrz(1), 'or', 'LineWidth', 2, 'MarkerSize', 8); % Impulse at f=0
+hold on;
+plot(f, s_unipolar_nrz, '-r', 'LineWidth', 2);
+
+% Manchester code
+s_manchester = (v^2 * T) * ((sin(pi * f * T/2) ./ (pi * f * T/2)).^2) .* (sin(pi * f * T/2).^2);
+plot(f, s_manchester, '--g', 'LineWidth', 2);
+
+% Polar NRZ
+s_polar_nrz = (v^2 * T) * (sin(pi * f * T) ./ (pi * f * T)).^2;
+plot(f, s_polar_nrz, '--b', 'LineWidth', 2);
+
+% Bipolar RZ
+s_bipolar_rz = (v^2 * T/4) * ((sin(pi * f * T/2) ./ (pi * f * T/2)).^2) .* (sin(pi * f * T).^2);
+plot(f, s_bipolar_rz, '--k', 'LineWidth', 2);
+
+legend('Unipolar NRZ: impulse at f=0', 'Unipolar NRZ', 'Manchester code', 'Polar NRZ', 'Bipolar RZ / RZ-AMI');
+xlabel('Normalized frequency');
+ylabel('Power spectral density');
+title('Power Spectral Density for Different Line Codes');
+
+
+Expt 9
+
+
+#include "dsk6713_aic23.h" //support file for codec, DSK
+Uint32 fs=DSK6713_AIC23_FREQ_8KHZ; //set sampling rate
+#define DSK6713_AIC23_INPUT_MIC 0x0015
+#define DSK6713_AIC23_INPUT_LINE 0x0011
+Uint16 inputsource=DSK6713_AIC23_INPUT_LINE; // select input
+#include <math.h> //for performing modulation operation
+static short in_buffer[100];
+Uint32 sample_data;
+short k=0;
+float filter_Coeff[] = { -0.0017, 0.0000,0.0029,-0.0000,-0.0067, 0.0000, 0.0141,-0.0000,-
+0.0268, 0.0000, 0.0491,-0.0000,-0.0969,0.0000,0.3156, 0.5008,0.3156, 0.0000,-0.0969,-
+0.0000, 0.0491,0.0000,-0.0268,-0.0000,0.0141, 0.0000,-0.0067,-0.0000, 0.0029, 0.0000,-
+0.0017};
+// for fc=2KHz
+short l_input, r_input,l_output, r_output;
+void comm_intr();
+void output_left_sample(short);
+short input_left_sample();
+signed int FIR_FILTER(float *h, signed int);
+interrupt void c_int11() //interrupt service routine
+{
+l_input = input_left_sample(); //inputs data
+l_output=(Int16)FIR_FILTER(filter_Coeff ,l_input);
+output_left_sample(l_output);
+return;
+} // end of interrupt routine
+signed int FIR_FILTER(float * h, signed int x)
+{
+int i=0;
+signed long output=0;
+in_buffer[0] = x; /* new input at buffer[0] */
+for(i=31;i>0;i--)
+in_buffer[i] = in_buffer[i-1]; /* shuffle the buffer */
+for(i=0;i<31;i++)
+output = output + h[i] * in_buffer[i];
+return(output);
+}
+void main()
+{
+comm_intr(); //init DSK, codec, McBSP
+while(1);
+}
+
+
+
+
+Expt 10
+
+//Create the CCS Project as mentioned in the procedure
+// iir.c generic iir filter using cascaded second order sections
+// 16-bit integer coefficients read from .cof file
+#include"DSK6416_AIC23.h";
+//codec-DSK interface support
+Uint32 fs=DSK6416_AIC23_FREQ_8KHZ;
+//set sampling rate
+#define DSK6416_AIC23_INPUT_MIC 0x0015
+#define DSK6416_AIC23_INPUT_LINE 0x0011
+Uint16 inputsource=DSK6416_AIC23_INPUT_LINE;
+//#include"bsl1800int.cof";
+short input_left_sample();
+void output_left_sample(short);
+void comm_intr();
+short w[NUM_SECTIONS][2] = {0};
+interrupt void c_int11() //interrupt service routine
+{
+short section; // index for section number
+short input; // input to each section
+int wn,yn; // intermediate and output values in each stage
+input = input_left_sample();
+for (section=0 ; section< NUM_SECTIONS ; section++)
+{
+wn = input - ((a[section][0]*w[section][0])>>15) - ((a[section][1]*w[section][1])>>15);
+yn = ((b[section][0]*wn)>>15) + ((b[section][1]*w[section][0])>>15) + ((b[section[2]*w[section][1])>>15);
+w[section][1] = w[section][0];
+w[section][0] = wn;
+input = yn; // output of current section will be input to next
+}
+output_left_sample((short)(yn)); // before writing to codec
+return; //return from ISR
+}
+void main()
+{
+comm_intr(); //init DSK, codec, McBSP
+while(1); //infinite loop
+}
+
+
