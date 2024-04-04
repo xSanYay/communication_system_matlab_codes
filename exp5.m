@@ -28,4 +28,27 @@ function [sqnr, a_quan] = u_pcm(a, n)
     sqnr = 20 * log10(norm(a) / norm(a - a_quan));
 end
 
+t = 0:0.01:10;
+a = sin(t);
+n = 16;   % Number of quantization levels
+mu = 255; % μ parameter
+amax = max(abs(a));
+a_comp = (log(1 + mu * abs(a / amax)) / log(1 + mu)) .* sign(a);
+
+a_quan = zeros(size(a_comp));
+for i = 1:n
+    indices = (q(i) - d / 2 <= a_comp) & (a_comp <= q(i) + d / 2);
+    a_quan(indices) = q(i);
+end
+
+a_reconstructed = (((1 + mu) .^ (abs(a_quan)) - 1) / mu) .* sign(a_quan) * amax;
+
+sqnr = 20 * log10(norm(a) / norm(a - a_reconstructed));
+
+
+plot(t, a, '-', t, a_reconstructed, '-');
+
+disp(['SQNR: ', num2str(sqnr), ' dB']);
+
+
 
